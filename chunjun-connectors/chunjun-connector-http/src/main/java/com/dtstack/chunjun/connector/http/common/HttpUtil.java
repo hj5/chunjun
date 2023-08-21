@@ -26,7 +26,13 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -58,19 +64,7 @@ public class HttpUtil {
 
     public static CloseableHttpClient getHttpsClient(int timeOut) {
 
-        // 设置Http连接池
-        SSLContext sslContext;
-        try {
-            sslContext =
-                    new SSLContextBuilder()
-                            .loadTrustMaterial(null, (certificate, authType) -> true)
-                            .build();
-        } catch (Exception e) {
-            log.warn(ExceptionUtil.getErrorMessage(e));
-            throw new RuntimeException(e);
-        }
         return getBaseBuilder(timeOut)
-                .setSSLContext(sslContext)
                 .setSSLHostnameVerifier(new NoopHostnameVerifier())
                 .build();
     }
@@ -95,8 +89,24 @@ public class HttpUtil {
                         .setConnectionRequestTimeout(timeOut)
                         .setSocketTimeout(timeOut)
                         .build();
+
+        //设置协议http和https对应的处理socket链接工厂的对象，使其绕过SSL验证:
+        SSLContext sslContext;
+        try {
+            sslContext = new SSLContextBuilder()
+                            .loadTrustMaterial(null, (certificate, authType) -> true)
+                            .build();
+        } catch (Exception e) {
+            log.warn(ExceptionUtil.getErrorMessage(e));
+            throw new RuntimeException(e);
+        }
+        Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register("http", PlainConnectionSocketFactory.INSTANCE)
+                .register("https", new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE))
+                .build();
+
         // 设置Http连接池
-        PoolingHttpClientConnectionManager pcm = new PoolingHttpClientConnectionManager();
+        PoolingHttpClientConnectionManager pcm = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
         pcm.setDefaultMaxPerRoute(COUNT);
         pcm.setMaxTotal(TOTAL_COUNT);
 
@@ -193,6 +203,9 @@ public class HttpUtil {
     }
 
     public static StringEntity getEntityData(Map<String, Object> body) {
+        if (body.size() ==1 && body.containsKey("data-raw")) {
+            return new StringEntity((String)body.get("data-raw"), ContentType.APPLICATION_JSON);
+        }
         StringEntity stringEntity = new StringEntity(gson.toJson(body), StandardCharsets.UTF_8);
         stringEntity.setContentEncoding(StandardCharsets.UTF_8.name());
         return stringEntity;

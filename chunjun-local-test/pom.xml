@@ -53,6 +53,11 @@
 		</dependency>
 		<dependency>
 			<groupId>com.dtstack.chunjun</groupId>
+			<artifactId>chunjun-connector-http</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.dtstack.chunjun</groupId>
 			<artifactId>chunjun-connector-binlog</artifactId>
 			<version>${project.version}</version>
 		</dependency>

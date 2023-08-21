@@ -44,7 +44,7 @@ public class LocalTest {
         String userDir = System.getProperty("user.dir");
 
         String jobPath =
-                "/Users/wtz/job_place/chunjun/1.16/_02_SYNC/_05_Oceanbase/oceanbase_stream.json";
+                "/Users/hj/Documents/workspace/github/chunjun/chunjun-examples/sql/http/http_stream.sql";
         String chunjunDistDir = userDir + "/chunjun-dist";
         String s = "";
 
